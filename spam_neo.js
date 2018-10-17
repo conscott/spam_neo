@@ -36,6 +36,9 @@ const getHexAddress = function(addr) {
     return api.u.reverseHex(api.wallet.getScriptHashFromAddress(addr))
 }
 
+const PAY_FEE = true;
+const FEE_IN_GAS = 0.00000001;
+
 // Just invoke spam_neo function in a loop
 // which creates tons of junk txs on the neo
 // blockchain for free
@@ -43,12 +46,22 @@ spamNeo = async(runs) => {
 
     for (let nonce = 1; nonce <= runs; nonce++) {
 
-      // Make uniquite private key / address pair invoking each
-      // free transaction. No spam is tied to a certain address
-      const privateKey = api.wallet.generatePrivateKey();
-      const publicKey = api.wallet.getPublicKeyFromPrivateKey(privateKey);
-      const scriptHash = api.wallet.getScriptHashFromPublicKey(publicKey);
-      const address = api.wallet.getAddressFromScriptHash(scriptHash);
+      let privateKey, address;
+
+      if (!PAY_FEE) {
+          // Make uniquite private key / address pair invoking each
+          // free transaction. No spam is tied to a certain address
+          privateKey = api.wallet.generatePrivateKey();
+          publicKey = api.wallet.getPublicKeyFromPrivateKey(privateKey);
+          scriptHash = api.wallet.getScriptHashFromPublicKey(publicKey);
+          address = api.wallet.getAddressFromScriptHash(scriptHash);
+      } else {
+          privateKey = api.wallet.getPrivateKeyFromWIF('INSERT_WIF_HERE');
+          publicKey = api.wallet.getPublicKeyFromPrivateKey(privateKey);
+          scriptHash = api.wallet.getScriptHashFromPublicKey(publicKey);
+          address = api.wallet.getAddressFromScriptHash(scriptHash);
+      }
+
       
       // Config for doInvoke function
       const config = {
@@ -56,6 +69,10 @@ spamNeo = async(runs) => {
         privateKey: privateKey,
         address: address,
         gas: 0
+      }
+
+      if (PAY_FEE) { 
+          config.fees = FEE_IN_GAS;
       }
 
       // Submit transaction to random NEO node
@@ -85,7 +102,7 @@ spamNeo = async(runs) => {
 
           let success = verifyInvokeResponse(res)
           if (!success) {
-            console.info("FAILED " + JSON.stringify(res.response));
+            console.info("FAILED " + JSON.stringify(res, null, 4));
           } else {
             console.info("Successful Invoke...");
           }
@@ -101,4 +118,4 @@ spamNeo = async(runs) => {
 }
 
 // And call it
-spamNeo(100);
+spamNeo(1);
